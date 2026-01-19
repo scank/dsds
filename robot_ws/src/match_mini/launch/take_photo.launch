@@ -1,6 +1,0 @@
-<launch>
-  
-  <node name="take_photo_rec" type="take_photo.py" pkg="match_mini" output="screen">
-     <param name="person_name" value="liwei"/>
-  </node>
-</launch>

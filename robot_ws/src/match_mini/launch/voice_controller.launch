@@ -1,6 +1,0 @@
-<launch>
-    <node pkg="match_mini" type="voicecontroller.py" respawn="false" name="voice_controller" output="screen">
-    </node>
-</launch>
-
-
