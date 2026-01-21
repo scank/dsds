@@ -1,0 +1,37 @@
+#ifndef __kalman_H
+#define __kalman_H
+
+
+
+//1d卡尔曼滤波
+typedef struct {
+    float x;  // state 
+    float A;  // x(n)=A*x(n-1)+u(n),u(n)~N(0,q) 
+    float H;  // z(n)=H*x(n)+w(n),w(n)~N(0,r)   
+    float q;  // process(predict) noise convariance 协方差
+    float r;  // measure noise convariance 
+    float p;  // estimated error convariance 估计误差协方差
+    float gain;
+}kalman_struct;
+
+
+extern kalman_struct KY1_Kalman;
+extern kalman_struct KY2_Kalman;
+extern kalman_struct KY3_Kalman;
+extern kalman_struct KY4_Kalman;
+extern kalman_struct KY5_Kalman;
+extern kalman_struct KY6_Kalman;
+
+
+void kalman_ALL_init(void);
+void kalman_init(kalman_struct *kalman_lcw, float init_x, float init_p);
+float kalman_filter(kalman_struct *kalman_lcw, float z_measure);
+
+//————————————————
+//版权声明：本文为CSDN博主「鹏の博客」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+//原文链接：https://blog.csdn.net/qq_38973721/article/details/128133961
+
+
+
+#endif
+

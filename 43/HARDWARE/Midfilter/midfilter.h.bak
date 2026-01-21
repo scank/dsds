@@ -1,0 +1,63 @@
+#ifndef __midfilter_H
+#define __midfilter_H
+
+#include "main.h"
+#include "arm_math.h"
+#include "iir.h"
+
+
+
+
+
+
+
+
+  /**
+   * @brief Struct for specifying sorting algorithm
+   */
+  typedef enum
+  {
+    ARM_SORT_BITONIC   = 0,
+             /**< Bitonic sort   */
+    ARM_SORT_BUBBLE    = 1,
+             /**< Bubble sort    */
+    ARM_SORT_HEAP      = 2,
+             /**< Heap sort      */
+    ARM_SORT_INSERTION = 3,
+             /**< Insertion sort */
+    ARM_SORT_QUICK     = 4,
+             /**< Quick sort     */
+    ARM_SORT_SELECTION = 5
+             /**< Selection sort */
+  } arm_sort_alg;
+
+  /**
+   * @brief Struct for specifying sorting algorithm
+   */
+  typedef enum
+  {
+    ARM_SORT_DESCENDING = 0,
+             /**< Descending order (9 to 0) */
+    ARM_SORT_ASCENDING = 1
+             /**< Ascending order (0 to 9) */
+  } arm_sort_dir;
+
+  /**
+   * @brief Instance structure for the sorting algorithms.
+   */
+  typedef struct            
+  {
+    arm_sort_alg alg;        /**< Sorting algorithm selected */
+    arm_sort_dir dir;        /**< Sorting order (direction)  */
+  } arm_sort_instance_f32;  
+  
+  
+  
+
+
+
+
+
+
+#endif
+

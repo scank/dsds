@@ -1,0 +1,19 @@
+#ifndef __CONTROL_H_
+#define __CONTROL_H_
+
+#include "main.h"
+
+extern int32_t ky1_value;
+extern int32_t ky2_value;
+extern int32_t ky3_value;
+extern int32_t ky4_value;
+extern int32_t ky5_value;
+extern int32_t ky6_value;
+
+extern uint8_t ky5530_channel;
+uint8_t control_ky5532_readADC(uint8_t channel);
+
+int32_t filter(int32_t *value);
+
+
+#endif	   

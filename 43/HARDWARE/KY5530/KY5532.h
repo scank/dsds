@@ -1,0 +1,414 @@
+
+/**
+******************************************************************************
+* @file         KY5532.h
+* @version      V1.0                          
+* @Author:      QiZhying  QQ2880067810
+* @date         2020-7-27              
+* @company      上海本宏电子科技有限公司
+* @website      www.hobos.com.cn                                         
+* @information  
+******************************************************************************
+*/
+/**
+ * 2019-11-26
+ */
+
+#ifndef _KY5532_H_
+#define _KY5532_H_
+#include "main.h"
+
+#define CHECK_SUM_EN         1   ///< 启用或禁用数据校验功能1
+
+#define USE_INTERNAL_Vref    0  ///< 启用或禁用内部参考电压
+
+#define PRINT_REG_CFG_VAL    0   ///< 启用或禁用打印寄存器配置参数
+
+#define USE_TIMEOUT_CHECK    1    ///< 启用超时检查功能，如果在预设时间没没有读到AD值，则重新初始化KY5532
+
+#define USE_SELF_DEFINE_INIT 0 ///< 0, 选择测试模式初始化   1，选择业务程序初始化模式
+/**
+ * 读写命令帧
+ */
+typedef struct{
+    uint8_t  pc   :1;       // bit7~bit1之奇偶校验位；当 Bit 7~Bit 1 有奇数个 1 时, PC 应为 1, 当 B7~B1
+                            // 有偶数个 1 时, PC 应为 0. 若此奇偶校验位错误, 则该命令不被执行, 且
+                            // SYS_CONF0 中的 ERR_CKS 位置会被置 1
+    
+    uint8_t  array:1;       // 0,单一寄存器读写    1,连续寄存器读写
+    uint8_t  rw   :1;       // 0:写   1:读
+    uint8_t  addr :4;       // 寄存器地址
+    uint8_t  rw_con_flg:1;  // 此位固定为0    0,读写寄存器命令帧   1, 启动ADC转换的转换命令帧
+}KY5532_RW_CMD_BITS;
+
+
+/**
+ * 转换命令帧
+ */
+typedef struct{
+    uint8_t  pc        :1;  // bit7    Bit 7 到 Bit 1 之奇偶校验位, 当 Bit 7~Bit 1 有奇数个 1 时, PC 应为 1, 当 B7~B1
+                            //         有偶数个 1 时, PC 应为 0. 若此奇偶校验位错误, 则该命令不被执行, 且
+                            //         SYS_CONF0 中的 ERR_CKS 位置会被置 1.
+    uint8_t  conv_mod  :3;  // bit3:1, 转换模式选择
+    uint8_t  conv_conf :2;  // bit5:4, 转换配置选择
+    uint8_t  dfault1   :1;  // bit6，  缺省
+    uint8_t  rw_con_flg:1;  // bit7，  此位固定为1    0,读写寄存器命令帧   1, 启动ADC转换的转换命令帧
+}KY5532_COV_CMD_BITS;
+
+
+typedef union{
+	uint8_t              cmd;         // 命令字节
+	KY5532_RW_CMD_BITS  rwCmd_bits;  // 读写命令帧
+    KY5532_COV_CMD_BITS covCmd_bits; // 转换命令帧
+}KY5532_CMD_Typedef;
+
+
+/**
+ * 配置寄存器
+ */
+typedef union{
+    uint16_t val;
+    struct{
+        uint16_t GA :3;    // bit0~bit2  ADC 模拟增益选择
+                           //           0x0: x64
+                           //           0x1: x128
+                           //           0x2: x16
+                           //           0x3: x32
+                           //           0x4: x4
+                           //           0x5: x8
+                           //           0x6: x1
+                           //           0x7: x2
+        uint16_t DEF1:1;   // bit3     /* 保留 */ 
+        uint16_t DR  :4;   // bit4~bit7 /*  ADC 数据输出码率选择 */ 
+                           //    当 SYS_CONF1 的 FR_SEL = 0 (50 Hz 模式), SYS_CONF0
+                           //    的 HBF_EN = 0（不开半带滤波器） 时,输出频率如下：
+                           //    0x0: 51200 Hz
+                           //    0x1: 25600 Hz
+                           //    0x2: 12800 Hz
+                           //    0x3: 6400 Hz
+                           //    0x4: 3200 Hz
+                           //    0x5: 1600 Hz
+                           //    0x6: 800 Hz
+                           //    0x7: 400 Hz
+                           //    0x8: 200 Hz
+                           //    0x9: 100 Hz
+                           //    0xA: 50 Hz
+                           //    0xB: 25 Hz
+                           //    0xC: 12.5 Hz
+                           //    0xD~0xF: 6.25 Hz
+                           //    当 FR_SEL=1(60 Hz 模式)， 输出频率为上述数值乘 1.2
+                           //    HBF_EN = 1（开启半带滤波器） 时，上述频率再除以 2
+        uint16_t DEF2:1;   // bit8       /* 保留 */ 
+        uint16_t DLY :2;   // bit9~bit10 /*   */ 
+                           //        滤波器延时时间选择， 用来控制打开 ADC 后到开始进行
+                           //        滤波器转换的时间延迟， 1 clock 等于 1 个 ADC 工作时
+                           //        钟周期，默认是 819200Hz。
+                           //        0x0: 256 ADC clocks
+                           //        0x1: 512 ADC clocks
+                           //        0x2: 16 ADC clocks
+                           //        0x3: 32 ADC clocks
+
+        uint16_t OD  :1;   // bit11    输入端开路检测选择
+                           //        0: 关闭开路检测功能
+                           //        1: 开启开路检测功能， 芯片内部会输出 0.5uA 电流来鉴测外部是否开路
+        uint16_t CHS :1;   // bit12    待转换的 ADC 通道选择
+                           //        0: 选择通道 0， 对应 VIP0/VIN0 信号引脚
+                           //        1: 选择通道 1， 对应 VIP1/VIN1 信号引脚
+        uint16_t OGSEL:1;  // bit13    待转换的 ADC 通道选择
+                           //        0: 选择通道 0， 对应 VIP0/VIN0 信号引脚
+                           //        1: 选择通道 1， 对应 VIP1/VIN1 信号引脚
+        uint16_t TMPEN:1;  // bit14   温度传感器使能
+                           //        0: 该次转换的信号通道由 CONV_CONFxx 里的 CHS 决定
+                           //        1: 该次转换为温度传感器转换
+                           //        若该次转换为温度传感器转换， 则芯片会自动将
+                           //        SYS_CONF1 中的 TMPPDN 置 1， 结束转换后， 会自动将
+                           //        TMPPDN 置 0.
+        uint16_t DEF3:1;   // bit15     /* 缺省  */
+    }bit;
+}KY5532_CONV_CONFx_Typedef;
+ 
+
+typedef union{
+    uint32_t val;
+    struct{
+        uint32_t    RS_V:1;     // 0 RS_V R/W 复位有效标志
+                                //        0: 上次复位失败， 主控 MCU 需要重新进行全局复位
+                                //        1: 上次复位成功
+        uint32_t    ERR_C:1;    // 1 ERR_C R ADC 转换错误， 此寄存器会在主控 MCU 读取此寄存器 后自动清 0
+                                //        0: 未发生错误
+                                //        1: ADC 转换错误
+                                //        有两种错误可能
+                                //        a. 未转换完成(SDO 未变为 0)前就被打断
+                                //        b. ADC 转换结果发生溢出(overflow)
+        uint32_t    ERR_CKS:1;  // 2 ERR_CKS R SPI 奇偶校验或和校验错误， 此寄存器会在主控 MCU读取此寄存器后自动清 0
+                                //        0: 未发生错误
+                                //        1: 表示最近一次接收到的命令帧奇偶校验错误， 或是
+                                //        写入的 32bits 数据和校验错误.
+        uint32_t    PW_LV:1;    // 3 PW_LV R 芯片电源欠压检测
+                                //        0: 芯片电源在 3V 以上
+                                //        1: 芯片电源已掉到 3V 以下
+        uint32_t    DEF4:1;     // 4 保留
+        uint32_t    OT_S:1;     // 5 OT_S R Offset 自校准标志位， 此位与 SYS_CONF1 的 SHI 位同步变化
+                                //        0: Offset 自校准未进行
+                                //        1: Offset 自校准进行中
+        uint32_t    DEF3:2;     // 7:6 保留
+        uint32_t    PHA:8;     // 15:8  ADC 码流相位延时选择
+        uint32_t    CSHIGH_MODE:1; // 16 CSHIGH_MODE R/W SPI 片选模式选择
+                                //        0: 关闭 SPI 片选信号可置 1 模式， 当芯片处于连续转换模式时,只要 SPI 片选信号置 1， 即会退出连续转换模式
+                                //        1: 开启 SPI 片选信号可置 1 模式， 当连续转换模式时,当 SPI 片选置 1， 不会退出连续转换模式。 当 SPI
+                                //        片选再度置 0 時， 会继续之前的连续转换模式， 直到 收到停止连续转换模式指令(详见转换命令帧章节).
+        uint32_t    DEF2:5;     //  21:17 保留
+        uint32_t    CKS_EN:1;   // 22 CKS_EN R/W SPI 接口和校验使能
+                                //        0: 关闭 SPI 接口和校验
+                                //        1: 开启 SPI 接口和校验
+        uint32_t    DEF1:2;     // 24:23 保留
+        uint32_t    HBF_EN:1;   // 25 HBF_EN R/W Halfband 滤波器开关选择
+                                //        0: 关闭 Halfband 滤波器
+                                //        1: 开启 Halfband 滤波器， 此时输出码率会减半
+        uint32_t    OGS:1;      //  26 OGS R/W 校准寄存器选择， 具体可参考 Table 5-4
+                                //        0: 由 CONV_CONFx 寄存器中的 CHS 决定
+                                //        1: 由 CONV_CONFx 寄存器中的 OGSEL 决定
+        uint32_t    DEF:4;      //  30:27 保留
+        uint32_t    RS_SYS:1;   //  31 RS_SYS R/W 系统全局复位(不包含 SPI 接口部分)， 此位被写 1 之 后， 会进行系统全局复位， 此位会在 10 ms 后自动清0。
+                                // 芯片有内置上电复位电路，如系统应用允许， 可在上电后先写该 BIT 复位芯片， 然后进行其他配置。
+                                //        写入 0: 无效果
+                                //        写入 1: 开始全局复位
+                                //        读取 0: 全局复位已完成
+                                //        读取 1: 全局复位进行中
+    }bit;
+}KY5532_SYS_CONF0_Typedef;
+
+typedef union{
+    uint32_t val;
+    struct{
+        uint32_t    DEF5  :4;   // 3:0 保留
+        uint32_t    CKMODE0:1;  // 4 需配置为 1     0:默认频率      1:x0.5
+        uint32_t    CKMODE1:1;  // 5 需配置为 1     0:默认频率      1:x0.5
+        uint32_t    IDT:2;      // 7:6 IDT<1:0> R/W 仪表放大器的电流消耗设置。在需要降低功耗的应用场合可配置此寄存器为 01 或 10。
+                                //      00: 默认功耗
+                                //      01: -33%
+                                //      10: -50%
+                                //      11: -60%
+        uint32_t    ADITA:2;    // 9:8 ADITA<1:0> R/W ADC 电路 A 部分的电流消耗设置。在需要降低功耗的应用场合可配置此寄存器为 01。不建议增加电流
+                                //      00: 默认功耗
+                                //      01: -50%
+                                //      10: +100%
+                                //      11: +50%
+        uint32_t    ADITB:2;    //11:10 ADITB<1:0> R/W ADC 电路 B 部分的电流消耗设置。在需要降低功耗的应用场合可配置此寄存器为 01。不建议增加电流
+                                //      00: 默认功耗
+                                //      01: -50%
+                                //      10: +150%
+                                //      11: +50%
+        uint32_t    DEF3:3;     //14:12 保留
+        uint32_t    GAIN_MODE:1;//15 当 ADC 增益选择为小于等于 16 倍时，需将此 BIT置’1’，大于16倍时为默认的’0
+        uint32_t    ADCPDN:1;   //16 ADCPDN R/W ADC 模拟模块使能， 此寄存器会在 MCU 发送转换命令
+                                //帧后自动打开， 并在完成转换后关闭。主控 MCU 端也
+                                //可以强制设置该 BIT 打开 ADC
+                                //        读取 0: ADC 已关闭
+                                //        读取 1: ADC 已使能
+                                //        写入 0: 无作用
+                                //        写入 1: 强制使能 ADC
+        uint32_t    TMPPDN:1;   //17 TMPPDN R/W 温度传感器使能， 此寄存器在开始 ADC 转换时，会自
+                                //动更新为 CONV_CONFx 寄存器内的 TMPEN 设定值
+                                //      0: 温度传感器已关闭
+                                //      1: 温度传感器已使能
+        uint32_t    DEF2:2;     //19:18 保留
+        uint32_t    GA:3;        //22:20 GA R ADC 增益选择， 此寄存器在开始 ADC 转换时，会自动更
+                                // 新为 CONV_CONFx 寄存器内的 GA 设定值
+                                //  0x0: x64
+                                //  0x1: x128
+                                //  0x2: x16
+                                //  0x3: x32
+                                //  0x4: x4
+                                //  0x5: x8
+                                //  0x6: x1
+                                //  0x7: x2
+        uint32_t    DEF1:1;      //23 保留
+        uint32_t    OD:1;       //24 OD R ADC 开路检测选择， 此寄存器在开始 ADC 转换时，会自动更新为 CONV_CONFx 寄存器内的 OD 设定值   
+                                //      0: 关闭开路检测功能
+                                //      1: 开启开路检测功能
+        uint32_t    CHS:1;      // 25 CHS R ADC 通道选择， 此寄存器在开始 ADC 转换时，会自动更新为 CONV_CONFx 寄存器内的 CHS 设定值
+                                //      0: 选择 ADC 通道 0
+                                //      1: 选择 ADC 通道 1
+        uint32_t    SWT_SIG:1;  //26 SWT_SIG R 内部接地开关使能，开关的一端接芯片 SWT 引脚，另一端接 AVSS 引脚。
+                                //      0: 关闭开关
+                                //      1: 打开开关
+        uint32_t    VRS:1;      //27 VRS R/W ADC 基准源选择
+                                //      0:使用外部基准源， REFP 和 REFN 为基准源输入
+                                //      1:使用内部 BGP 电路作为基准源，基准电压约 1.2V，典型温度系数 10ppm/℃，从 REFP 和 REFN 引脚输出。
+                                //        外部 REFP 和 REFN 之间需加 1 个 1uF 去耦电容。
+        uint32_t    SHI:1;      // 28 SHI R/W 输入信号短路， 该 BIT 与 SYS_CONF0 里的 OT_S 同步变化
+                                //      读取 0: 内部短路功能已关闭
+                                //      读取 1: 内部短路已使能
+                                //      写入 0: 无作用
+                                //      写入 1: 强制使能内部短路
+        uint32_t    FR_SEL:1;   // 29 FR_SEL R/W 频率模式选择
+                                //      0: 50Hz 模式，对应 ADC 时钟 819.2kHz（系统频率除以 6）
+                                //      1: 60Hz 模式，对应 ADC 时钟 983.04kHz（系统频率除以 5）
+        uint32_t    POWD:1;     // 30 POWD R/W 低功耗模式选择
+                                //      0: 正常模式
+                                //      1: 低功耗模式， 此模式下芯片功耗小于 1uA
+        uint32_t    RCHPDN:1;   // 31 RCHPDN R/W 内部高频 RC 时钟开关， 此寄存器受晶体时钟监测结果控制，如果监测到连续 
+                                // 200ms 没有晶体时钟，则将自动将此寄存器置 1，打开 RCH 时钟并将系统时钟切换至RCH。
+                                //      读取 0: RCH 模块已被关闭
+                                //      读取 1： RCH 模块已被打开
+                                // 主控 MCU 端也可以强制打开 RCH 模块
+                                //      写入 0: 无作用
+                                //      写入 1: 强制打开 RCH 模块， 但是并不会将系统时钟切换到 RCH
+    }bit;
+}KY5532_SYS_CONF1_Typedef;
+
+ typedef union{
+    uint32_t val;
+    struct{
+        uint32_t    DEF6    :6;   // 5:0 保留
+        uint32_t    VCMTRIM :1;   // 6 保留
+        uint32_t    DEF5    :1;   // 7 保留        
+        uint32_t    RCTRIM  :4;   // 11:8 RCTRIM<3:0> R/W 高频 RC 时钟的频率调节。芯片内部 RCH 时钟在-40~85 度范围内随温度的频率变
+                                  // 化小于 1%，但芯片之间的 RCH 频率存在固有偏差。如系统应用在无晶体的场合，且希望 RCH 频率精度较高
+                                  // 时，需要 MCU 做额外校正，校正值配置到此寄存器。有晶体的应用场合则无需配置此寄存器。
+                                  //        0000:默认值; 0001:-2.5%;
+                                  //        0010: -5%; 0011: -7.5%;
+                                  //        0100: -10%; 0101: -12.5%;
+                                  //        0110: -15%; 0111: -17.5%
+                                  //        1000: +20%; 1001: +17.5%;
+                                  //        1010: +15%; 1011: +12.5%;
+                                  //        1100: +10%; 1101: +7.5%;
+                                  //        1110: +5%; 1111: +2.5%
+        uint32_t    BGP_MODE :1;  // 12 BGP_MODE R/W 内部基准电压源(BGP)的模式，在使用内部 BGP 作为 ADC 基准源时，建议配置为 1
+                                  //        0:默认模式
+                                  //        1:低 offset 模式
+        uint32_t    DEF4     :3;  // 15:13 保留
+        uint32_t    DMODE    :2;  // 17:16  DMODE 设置，在数据率 DR 设置为 400Hz 及以下时，建议配置为’10’ ； DR 在 400Hz~6.4kHz 时， 配
+                                  //        置为’00’;DR 在 12.8kHz 及以上时，配置为’11’。
+        uint32_t    DEF3     :2;  // 19:18 保留
+
+
+        uint32_t    REFTRIM  :3;  // 22:20 REFTRIM<2:0> R/W 内部基准电压源(BGP)的温度系数调节
+                                  //        000:默认值;
+                                  //        001:+10ppm/℃;
+                                  //        010:+20ppm/℃;
+                                  //        011:+30ppm/℃;
+                                  //        100:+30ppm/℃;
+                                  //        101:-30ppm/℃;
+                                  //        110:-20ppm/℃;
+                                  //        111:-10ppm/℃
+        uint32_t    DEF2     :6;  // 28:23 保留
+        uint32_t    REFTRIM_L:1;  // 29 REFTRIM_L R/W 内部基准电压源(BGP)的温度系数调节
+                                  //        0: 默认值
+                                  //        1: +45ppm/℃
+        uint32_t    DEF1    :1;   // 30 保留
+        uint32_t    ADCKDIV2:1;   // 31 ADCKDIV2 R/W ADC 工作频率选择，正常情况下采用默认值即可。该 BIT设 1 后， CONV_CONFx 
+                                  // 寄存器里 DR 所对应的 ADC 数据率也会相应除以 2。
+                                  //        0: 819.2kHz (50Hz 模式下， 60Hz 模式下则乘 1.2)
+                                  //        1: 409.6kHz
+    }bit;
+}KY5532_SYS_CONF2_Typedef;
+
+
+/***
+ * 寄存器地址
+ */
+#define ADDR_OS_CH0         0x0 // ADC通道0 Offset 设置
+#define ADDR_GAIN_CH0       0x1 // ADC通道0 Gain 设置
+#define ADDR_OS_CH1         0x2 // ADC通道1 Offset 设置
+#define ADDR_GAIN_CH1       0x3 // ADC通道1 Gain 设置
+#define ADDR_CONV_CONF0     0x4 // CONF0与CONF1 设置寄存器
+#define ADDR_CONV_CONF1     0x5 // CONF2与CONF3 设置寄存器
+#define ADDR_SYS_CONF0      0x6 // 系统设置寄存器0
+#define ADDR_SYS_CONF1      0x7 // 系统设置寄存器1
+#define ADDR_SYS_CONF2      0x8 // 系统设置寄存器2
+#define ADDR_D_TARG         0x9 // 增益校准目标寄存器
+#define ADDR_CONV_DATA      0xA // 转换数据寄存器
+#define ADDR_BITSTREAM      0xB // 
+
+
+/**
+ * 转换命令帧.转换配置选择
+ */
+#define CONV_CONF00          0x0 // 
+#define CONV_CONF01          0x1 // 
+#define CONV_CONF10          0x2 // 
+#define CONV_CONF11          0x3 // 
+
+/**
+ * 转换命令帧.转换模式选择
+ */
+#define CONV_MOD_NOR_SIN    0x00 // 正常单次转换
+#define CONV_MOD_NOR_CON    0x01 // 正常连续转换模式
+#define CONV_MOD_OFF_AUT    0x02 // Offset 自校准模式
+#define CONV_MOD_OFF_SYS    0x05 // Offset 系统校准模式
+#define CONV_MOD_GAN_SYS    0x06 // Offset 系统校准模式
+#define NEXT_STATE_WAIT     0XA5 // 进入待命状态 
+ 
+ 
+typedef enum{
+    adc_speed_indx_12_5  = 0,
+    adc_speed_indx_6_25 ,
+    adc_speed_indx_25 ,
+    adc_speed_indx_50 ,
+    adc_speed_indx_100 ,
+    adc_speed_indx_200 ,
+    adc_speed_indx_400 ,
+    adc_speed_indx_800 ,
+    adc_speed_indx_1600 ,
+    adc_speed_indx_3200 ,
+    adc_speed_indx_6400 ,
+    adc_speed_indx_12800 ,
+    adc_speed_indx_25600 ,
+    adc_speed_indx_51200 ,
+    adc_speed_param_error
+}KY553x_SPEED_Type;
+
+
+typedef enum{
+    adc_pga_indx_1 = 0,
+    adc_pga_indx_2,
+    adc_pga_indx_64,
+    adc_pga_indx_128,
+    adc_pga_indx_4,
+    adc_pga_indx_8,
+    adc_pga_indx_16,
+    adc_pga_indx_32,
+    adc_pga_param_error
+}KY553x_PGA_Type;
+
+
+extern volatile uint32_t KY5532_getVal_timeout_ms; ///< 读取数据超时计时器 
+
+void send_one_clk(void);
+void KY5532_gpio_init(void);
+void ReadADC_TimeoutCnt_ms(uint32_t n_ms);
+void KY5532_send_byte(uint8_t byt);
+void KY5532_send_4byte(uint32_t byt4);
+uint8_t KY5532_read1byte(void);
+uint8_t KY5532_read4byte(uint32_t *val4byte);
+void KY5532_cmd_send(uint8_t cmd);
+void KY5532_w_cmd_verify(uint8_t regAddr, uint32_t regDat,uint8_t vfyFlg);
+void Entry_WaitState(void);
+void KY5532_w_cmd(uint8_t regAddr, uint32_t regDat);
+uint32_t KY5532_r_cmd(uint8_t regAddr);
+void KY5532_conv_start(uint8_t cfg, uint8_t mod);
+void KY5532_SPI_Reset(void);
+void KY5532_ch_cfg(int8_t cfg_x,    ///< ADC转换通道使用的配置寄存器，CONV_CONF00，CONV_CONF01，CONV_CONF10，CONV_CONF11
+                   KY5532_CONV_CONFx_Typedef cfg_reg_val);
+void KY5532_offset_selfCalibration(void);
+void KY5532_Gain_Calibration(void);
+uint8_t KY5532_Config(KY553x_PGA_Type pgaIndx,KY553x_SPEED_Type speedIndx);
+void KY5532_conv_cfg(KY553x_PGA_Type pgaIndx,KY553x_SPEED_Type speedIndx);
+void KY5532_ch0_single_start(void);
+void KY5532_ch0_continue_start(void);
+void KY5532_ch1_single_start(void);
+void KY5532_ch1_continue_start(void);
+
+void KY5532_Convert_Stop(void);
+uint8_t KY5532_read_adcVal(int32_t *value);
+uint8_t KY5532_Get_ADCVal_once(uint8_t chx, int32_t *adcDat);
+void KY5532_Init(void);
+
+
+void KY5530_ALL_Init(void);
+
+
+#endif
+

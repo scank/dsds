@@ -1,0 +1,172 @@
+#include "kalman.h"
+
+kalman_struct KY1_Kalman;
+kalman_struct KY2_Kalman;
+kalman_struct KY3_Kalman;
+kalman_struct KY4_Kalman;
+kalman_struct KY5_Kalman;
+kalman_struct KY6_Kalman;
+
+
+void kalman_ALL_init(void)
+{
+	kalman_init(&KY1_Kalman,0,100);
+	kalman_init(&KY2_Kalman,0,100);
+	kalman_init(&KY3_Kalman,0,100);
+	kalman_init(&KY4_Kalman,0,100);
+	kalman_init(&KY5_Kalman,0,100);
+	kalman_init(&KY6_Kalman,0,100);
+	
+	if(lvbocanshu == 1)
+	{
+	//25hz
+		KY1_Kalman.q = 0.5f;
+		KY1_Kalman.r = 30.0f;
+		KY2_Kalman.q = 0.5f;
+		KY2_Kalman.r = 30.0f;
+		KY3_Kalman.q = 0.5f;
+		KY3_Kalman.r = 30.0f;
+		KY4_Kalman.q = 0.5f;
+		KY4_Kalman.r = 30.0f;
+		KY5_Kalman.q = 0.5f;
+		KY5_Kalman.r = 30.0f;
+		KY6_Kalman.q = 0.5f;
+		KY6_Kalman.r = 30.0f;
+	}
+	else if(lvbocanshu == 2)
+	{
+	//50hz
+		KY1_Kalman.q = 0.8f;
+		KY1_Kalman.r = 38.0f;
+		KY2_Kalman.q = 0.8f;
+		KY2_Kalman.r = 38.0f;
+		KY3_Kalman.q = 0.8f;
+		KY3_Kalman.r = 38.0f;
+		KY4_Kalman.q = 0.8f;
+		KY4_Kalman.r = 38.0f;
+		KY5_Kalman.q = 0.8f;
+		KY5_Kalman.r = 38.0f;
+		KY6_Kalman.q = 0.8f;
+		KY6_Kalman.r = 38.0f;
+	}
+	else if(lvbocanshu == 3)
+	{
+	//100hz
+		KY1_Kalman.q = 0.2f;
+		KY1_Kalman.r = 50.0f;
+		KY2_Kalman.q = 0.2f;
+		KY2_Kalman.r = 50.0f;
+		KY3_Kalman.q = 0.2f;
+		KY3_Kalman.r = 50.0f;
+		KY4_Kalman.q = 0.2f;
+		KY4_Kalman.r = 50.0f;
+		KY5_Kalman.q = 0.2f;
+		KY5_Kalman.r = 50.0f;
+		KY6_Kalman.q = 0.2f;
+		KY6_Kalman.r = 50.0f;
+	}
+	else if(lvbocanshu == 4)
+	{
+	//100hz
+		KY1_Kalman.q = 0.5f;
+		KY1_Kalman.r = 20.0f;
+		KY2_Kalman.q = 0.5f;
+		KY2_Kalman.r = 20.0f;
+		KY3_Kalman.q = 0.5f;
+		KY3_Kalman.r = 20.0f;
+		KY4_Kalman.q = 0.5f;
+		KY4_Kalman.r = 20.0f;
+		KY5_Kalman.q = 0.5f;
+		KY5_Kalman.r = 20.0f;
+		KY6_Kalman.q = 0.5f;
+		KY6_Kalman.r = 20.0f;
+	}
+	
+	
+//感觉最好的	
+//	KY1_Kalman.q = 0.1;
+//	KY1_Kalman.r = 200;
+//	KY2_Kalman.q = 0.1;
+//	KY2_Kalman.r = 200;
+//	KY3_Kalman.q = 0.1;
+//	KY3_Kalman.r = 200;
+//	KY4_Kalman.q = 0.1;
+//	KY4_Kalman.r = 200;
+//	KY5_Kalman.q = 0.1;
+//	KY5_Kalman.r = 200;
+//	KY6_Kalman.q = 0.1;
+//	KY6_Kalman.r = 200;
+	
+
+	
+////3200hz		定时器1khz
+//	KY1_Kalman.q = 0.15f;
+//	KY1_Kalman.r = 90.0f;
+//	KY2_Kalman.q = 0.15f;
+//	KY2_Kalman.r = 90.0f;
+//	KY3_Kalman.q = 0.15f;
+//	KY3_Kalman.r = 90.0f;
+//	KY4_Kalman.q = 0.15f;
+//	KY4_Kalman.r = 90.0f;
+//	KY5_Kalman.q = 0.15f;
+//	KY5_Kalman.r = 90.0f;
+//	KY6_Kalman.q = 0.15f;
+//	KY6_Kalman.r = 90.0f;
+
+//200hz		定时器200hz
+//	KY1_Kalman.q = 0.15f;
+//	KY1_Kalman.r = 90.0f;
+//	KY2_Kalman.q = 0.15f;
+//	KY2_Kalman.r = 90.0f;
+//	KY3_Kalman.q = 0.15f;
+//	KY3_Kalman.r = 90.0f;
+//	KY4_Kalman.q = 0.15f;
+//	KY4_Kalman.r = 90.0f;
+//	KY5_Kalman.q = 0.15f;
+//	KY5_Kalman.r = 90.0f;
+//	KY6_Kalman.q = 0.15f;
+//	KY6_Kalman.r = 90.0f;
+	
+}
+
+
+/**
+ *kalman_init - 卡尔曼滤波器初始化
+ *@kalman_lcw：卡尔曼滤波器结构体
+ *@init_x：待测量的初始值
+ *@init_p：后验状态估计值误差的方差的初始值
+ */
+void kalman_init(kalman_struct *kalman_lcw, float init_x, float init_p)
+{
+    kalman_lcw->x = init_x;//待测量的初始值，如有中值一般设成中值（如陀螺仪）
+    kalman_lcw->p = init_p;//后验状态估计值误差的方差的初始值
+    kalman_lcw->A = 1;
+    kalman_lcw->H = 1;
+    kalman_lcw->q = 0.15f;//10e-6;//2e2;predict noise convariance 预测（过程）噪声方差 实验发现修改这个值会影响收敛速率
+    kalman_lcw->r = 90.0f;//10e-5;//测量（观测）噪声方差。以陀螺仪为例，测试方法是：
+    //保持陀螺仪不动，统计一段时间内的陀螺仪输出数据。数据会近似正态分布，
+    //按3σ原则，取正态分布的(3σ)^2作为r的初始化值
+}
+
+/**
+ *kalman_filter - 卡尔曼滤波器
+ *@kalman_lcw:卡尔曼结构体
+ *@measure；测量值
+ *返回滤波后的值
+ */
+float kalman_filter(kalman_struct *kalman_lcw, float measure)
+{
+    /* Predict */
+    kalman_lcw->x = kalman_lcw->A * kalman_lcw->x;
+    kalman_lcw->p = kalman_lcw->A * kalman_lcw->A * kalman_lcw->p + kalman_lcw->q;  /* p(n|n-1)=A^2*p(n-1|n-1)+q */
+
+    /* Measurement */
+    kalman_lcw->gain = kalman_lcw->p * kalman_lcw->H / (kalman_lcw->p * kalman_lcw->H * kalman_lcw->H + kalman_lcw->r);
+    kalman_lcw->x = kalman_lcw->x + kalman_lcw->gain * (measure - kalman_lcw->H * kalman_lcw->x);
+    kalman_lcw->p = (1 - kalman_lcw->gain * kalman_lcw->H) * kalman_lcw->p;
+
+    return kalman_lcw->x;
+}
+//————————————————
+//版权声明：本文为CSDN博主「鹏の博客」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+//原文链接：https://blog.csdn.net/qq_38973721/article/details/128133961

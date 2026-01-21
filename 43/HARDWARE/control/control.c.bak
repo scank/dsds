@@ -1,0 +1,107 @@
+#include "KY5532.h"
+#include "control.h"
+#include "kalman.h"
+#include "protocol.h"
+#include "my_uart.h"
+
+
+uint8_t ky5530_channel =1;
+
+int32_t ky1_value;
+int32_t ky2_value;
+int32_t ky3_value;
+int32_t ky4_value;
+int32_t ky5_value;
+int32_t ky6_value;
+
+uint8_t control_ky5532_readADC(uint8_t channel)
+{
+	uint8_t returned_value;
+	switch(channel)
+	{
+		case 1:
+			ky5530_channel = 1;
+			returned_value = KY5532_read_adcVal(&ky1_value);
+						break;
+		case 2:
+			ky5530_channel = 2;
+			returned_value = KY5532_read_adcVal(&ky2_value);
+
+						break;
+		case 3:
+			ky5530_channel = 3;
+			returned_value = KY5532_read_adcVal(&ky3_value);
+
+						break;
+		case 4:
+			ky5530_channel = 4;
+			returned_value = KY5532_read_adcVal(&ky4_value);
+
+						break;
+		case 5:
+			ky5530_channel = 5;
+			returned_value = KY5532_read_adcVal(&ky5_value);
+
+						break;
+		case 6:
+			ky5530_channel = 6;
+			returned_value = KY5532_read_adcVal(&ky6_value);
+
+						break;
+		
+		default:
+			returned_value = 0;
+						break;
+	}
+	
+	return returned_value;
+}
+
+
+
+int32_t filter(void)
+{
+	char count,i,N = 3;
+	int32_t Value_max,Value_min,sum = 0;
+	int32_t Value_buf[N];
+
+	for(count=0;count<N;count++)
+	{
+		
+		control_ky5532_readADC(1);
+		
+		kalman_filter(&KY1_Kalman,ky1_value);
+		Value_buf[count]= KY1_Kalman.x;
+//		Value_buf[count]= KY5532_read_adcVal(value);
+//		kalman_filter(&KY1_Kalman,ky1_value);
+		
+		SendPacket_NowValue(Channal01Address1Byte, ky1_value,USART1);
+		SendPacket_Target(Channal01Address1Byte,KY1_Kalman.x,USART1);
+		
+	}
+
+	Value_max = Value_buf[0];
+	Value_min = Value_buf[0];
+
+	for(i=0;i<N;i++)
+	{
+		if(Value_buf[i]>Value_max)
+		{
+			Value_max = Value_buf[i];
+		}
+		if(Value_buf[i]<Value_min)
+		{
+			Value_min = Value_buf[i];
+		}
+		sum += Value_buf[i];
+	}
+   sum -= Value_max;
+   sum -= Value_min;
+	
+   	SendPacket_Target(Channal02Address1Byte, (sum/(N-2)),USART1);
+	SendPacket_NowValue(Channal02Address1Byte,-1000,USART1);
+	
+   return (sum/(N-2));
+}
+
+

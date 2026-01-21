@@ -1,0 +1,174 @@
+#include "iir.h"
+#include "main.h"
+
+
+
+
+/*IIR*/
+uint8_t IIR_data_flag;									/*数据采集结束*/
+uint32_t blockSize = BLOCK_SIZE;
+uint32_t numBlocks = TEST_LENGTH_SAMPLES/BLOCK_SIZE;      /* 需要调用arm_biquad_cascade_df1_f32的次数 */
+
+
+float32_t testOutput1[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+float32_t testOutput2[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+float32_t testOutput3[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+float32_t testOutput4[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+float32_t testOutput5[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+float32_t testOutput6[TEST_LENGTH_SAMPLES+3];               /* 滤波后的输出 */
+
+
+//static float32_t IIRStateF32[4*IIRnumStages];                      /* 状态缓存 */
+      
+ 
+
+float32_t KY1_IIR_out,KY2_IIR_out,KY3_IIR_out,KY4_IIR_out,KY5_IIR_out,KY6_IIR_out;
+
+
+arm_biquad_casd_df1_inst_f32 S1,S2,S3,S4,S5,S6;//初始化结构体
+float32_t ScaleValue = 0.052219514664161220673932461977528873831f * 0.042798017416583809813257488485760404728f;		/*放缩系数 */
+/* 巴特洛斯低通滤波器系数 1000hz---5Hz*/                                                                                                                                         
+float32_t IIRCoeffs32LP[5*IIRnumStages] = {                                                                                 
+    1.0f,  2.0f,  1.0f,  1.479798894397216679763573665695730596781f,  
+-0.688676953053861784503908438637154176831f,
+
+    1.0f,  2.0f,  1.0f,  1.212812092620218384908525877108331769705f,  
+-0.384004162286553540894828984164632856846f
+};
+float32_t IIRStateF32_1[4*IIRnumStages],IIRStateF32_2[4*IIRnumStages],IIRStateF32_3[4*IIRnumStages],
+								IIRStateF32_4[4*IIRnumStages],IIRStateF32_5[4*IIRnumStages],IIRStateF32_6[4*IIRnumStages];                      /* 状态缓存 */
+void arm_iir_all_init(void)
+{
+	if(lvbocanshu == 1)
+	{//25hz		
+		ScaleValue = 0.052219514664161220673932461977528873831f * 0.042798017416583809813257488485760404728f;		/*放缩系数 */
+		IIRCoeffs32LP[3]= 1.479798894397216679763573665695730596781f;
+		IIRCoeffs32LP[4]= -0.688676953053861784503908438637154176831f;
+		IIRCoeffs32LP[8]= 1.212812092620218384908525877108331769705f;
+		IIRCoeffs32LP[9]= -0.384004162286553540894828984164632856846f;
+		
+		arm_biquad_cascade_df1_init_f32(&S1, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_1[0]);
+		arm_biquad_cascade_df1_init_f32(&S2, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_2[0]);
+		arm_biquad_cascade_df1_init_f32(&S3, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_3[0]);
+		arm_biquad_cascade_df1_init_f32(&S4, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_4[0]);
+		arm_biquad_cascade_df1_init_f32(&S5, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_5[0]);
+		arm_biquad_cascade_df1_init_f32(&S6, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_6[0]);
+//		SOS Matrix:                                                                                      
+//		1  2  1  1  1.479798894397216679763573665695730596781  -0.688676953053861784503908438637154176831
+//		1  2  1  1  1.212812092620218384908525877108331769705  -0.384004162286553540894828984164632856846
+//																									 
+//		Scale Values:                                                                                    
+//		0.052219514664161220673932461977528873831                                                        
+//		0.042798017416583809813257488485760404728    
+	}
+	else if(lvbocanshu == 2)
+	{//50hz
+		ScaleValue = 0.014343368255973583044737829084169788985f * 0.012773570342747455133580736230669572251f;		/*放缩系数 */
+		IIRCoeffs32LP[3]= 1.768827859923721934620743923005647957325f;
+		IIRCoeffs32LP[4]= -0.826201332947616107205135449476074427366f;
+		IIRCoeffs32LP[8]= 1.575239977788151612969613779569044709206f;
+		IIRCoeffs32LP[9]= -0.626334259159141315542740358068840578198f;
+		arm_biquad_cascade_df1_init_f32(&S1, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_1[0]);
+		arm_biquad_cascade_df1_init_f32(&S2, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_2[0]);
+		arm_biquad_cascade_df1_init_f32(&S3, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_3[0]);
+		arm_biquad_cascade_df1_init_f32(&S4, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_4[0]);
+		arm_biquad_cascade_df1_init_f32(&S5, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_5[0]);
+		arm_biquad_cascade_df1_init_f32(&S6, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_6[0]);
+//		SOS Matrix:                                                                                      
+//		1  2  1  1  1.768827859923721934620743923005647957325  -0.826201332947616107205135449476074427366
+//		1  2  1  1  1.575239977788151612969613779569044709206  -0.626334259159141315542740358068840578198
+//																										 
+//		Scale Values:                                                                                    
+//		0.014343368255973583044737829084169788985                                                        
+//		0.012773570342747455133580736230669572251    
+	}
+	else if(lvbocanshu == 3)
+	{//100hz
+		ScaleValue = 0.003762202981698729766651956296641401423f * 0.003533495923377968916945235378079814836f;		/*放缩系数 */
+		IIRCoeffs32LP[3]= 1.893415601022500283079352811910212039948f;
+		IIRCoeffs32LP[4]= -0.908464412949295252452941440424183383584f;
+		IIRCoeffs32LP[8]= 1.778313488139435349921768647618591785431f;
+		IIRCoeffs32LP[9]= -0.792447471832947059056095895357429981232f;
+		arm_biquad_cascade_df1_init_f32(&S1, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_1[0]);
+		arm_biquad_cascade_df1_init_f32(&S2, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_2[0]);
+		arm_biquad_cascade_df1_init_f32(&S3, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_3[0]);
+		arm_biquad_cascade_df1_init_f32(&S4, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_4[0]);
+		arm_biquad_cascade_df1_init_f32(&S5, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_5[0]);
+		arm_biquad_cascade_df1_init_f32(&S6, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_6[0]);
+//		SOS Matrix:                                                                                      
+//		1  2  1  1  1.893415601022500283079352811910212039948  -0.908464412949295252452941440424183383584
+//		1  2  1  1  1.778313488139435349921768647618591785431  -0.792447471832947059056095895357429981232
+//																										 
+//		Scale Values:                                                                                    
+//		0.003762202981698729766651956296641401423                                                        
+//		0.003533495923377968916945235378079814836                                                     
+
+	}
+	else if(lvbocanshu == 4)
+	{//100hz
+		ScaleValue = 0.003762202981698729766651956296641401423f * 0.003533495923377968916945235378079814836f;		/*放缩系数 */
+		IIRCoeffs32LP[3]= 1.893415601022500283079352811910212039948f;
+		IIRCoeffs32LP[4]= -0.908464412949295252452941440424183383584f;
+		IIRCoeffs32LP[8]= 1.778313488139435349921768647618591785431f;
+		IIRCoeffs32LP[9]= -0.792447471832947059056095895357429981232f;
+		arm_biquad_cascade_df1_init_f32(&S1, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_1[0]);
+		arm_biquad_cascade_df1_init_f32(&S2, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_2[0]);
+		arm_biquad_cascade_df1_init_f32(&S3, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_3[0]);
+		arm_biquad_cascade_df1_init_f32(&S4, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_4[0]);
+		arm_biquad_cascade_df1_init_f32(&S5, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_5[0]);
+		arm_biquad_cascade_df1_init_f32(&S6, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0],(float32_t *)&IIRStateF32_6[0]);
+//		SOS Matrix:                                                                                      
+//		1  2  1  1  1.893415601022500283079352811910212039948  -0.908464412949295252452941440424183383584
+//		1  2  1  1  1.778313488139435349921768647618591785431  -0.792447471832947059056095895357429981232
+//																										 
+//		Scale Values:                                                                                    
+//		0.003762202981698729766651956296641401423                                                        
+//		0.003533495923377968916945235378079814836     
+	}
+}
+
+
+/*
+*********************************************************************************************************
+*    函 数 名: arm_iir_f32_lp
+*    功能说明: 调用函数arm_iir_f32_lp实现低通滤波器
+*    形    参：无
+*    返 回 值: 无
+*********************************************************************************************************
+*/
+//void arm_iir_f32_lp(void)
+//{
+////    uint32_t i;
+////    arm_biquad_casd_df1_inst_f32 S;
+////    float32_t ScaleValue;
+////    float32_t  *inputF32, *outputF32;
+////    
+////    /* 初始化输入输出缓存指针 */
+////    inputF32 = &testInput_f32_5Hz_100Hz[0];
+////    outputF32 = &testOutput[0];
+////    
+////	
+////    /* 初始化 */
+////    arm_biquad_cascade_df1_init_f32(&S, IIRnumStages, (float32_t *)&IIRCoeffs32LP[0], 
+////(float32_t *)&IIRStateF32[0]);
+////    
+////    /* 实现IIR滤波，这里每次处理1个点 */
+////    for(i=0; i < 90; i++)
+////    {
+////        arm_biquad_cascade_df1_f32(&S, inputF32 + (i * blockSize),  outputF32 + (i * blockSize),
+////  blockSize);
+////    }
+////            
+////    /*放缩系数 */
+////    ScaleValue = 0.221363376717038817798055561070214025676f * 0.008752003940114461491561748118783725658f ; 
+////    
+////    /* 打印滤波后结果 */
+////    for(i=0; i<90; i++)
+////    {
+////		//testOutput[i] *= ScaleValue;
+////        printf("%.3f   %.3f\r\n", testInput_f32_5Hz_100Hz[i], testOutput[i]*ScaleValue);
+////    }
+//}
+
+
+

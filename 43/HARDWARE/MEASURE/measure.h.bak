@@ -1,0 +1,15 @@
+#ifndef __SEASURE_H
+#define __SEASURE_H
+
+#include "main.h"
+
+
+extern uint8_t measure_flag;
+extern float32_t measure_value1,measure_value2,measure_value3,measure_value4,measure_value5,measure_value6;
+extern void delay_us(__IO uint32_t delay);
+int32_t measure_calibration(uint8_t i);//测量前校准获取基准
+
+
+
+#endif
+
